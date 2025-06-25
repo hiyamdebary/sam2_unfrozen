@@ -622,31 +622,31 @@ class Trainer:
             batch = batch.to(self.device, non_blocking=True)
 
             # compute output
-            with torch.no_grad():
-                with torch.cuda.amp.autocast(
-                    enabled=(self.optim_conf.amp.enabled if self.optim_conf else False),
-                    dtype=(
-                        get_amp_type(self.optim_conf.amp.amp_dtype)
-                        if self.optim_conf
-                        else None
-                    ),
-                ):
-                    for phase, model in zip(curr_phases, curr_models):
-                        loss_dict, batch_size, extra_losses = self._step(
-                            batch,
-                            model,
-                            phase,
-                        )
+            # with torch.no_grad():
+            with torch.cuda.amp.autocast(
+                enabled=(self.optim_conf.amp.enabled if self.optim_conf else False),
+                dtype=(
+                    get_amp_type(self.optim_conf.amp.amp_dtype)
+                    if self.optim_conf
+                    else None
+                ),
+            ):
+                for phase, model in zip(curr_phases, curr_models):
+                    loss_dict, batch_size, extra_losses = self._step(
+                        batch,
+                        model,
+                        phase,
+                    )
 
-                        assert len(loss_dict) == 1
-                        loss_key, loss = loss_dict.popitem()
+                    assert len(loss_dict) == 1
+                    loss_key, loss = loss_dict.popitem()
 
-                        loss_mts[loss_key].update(loss.item(), batch_size)
+                    loss_mts[loss_key].update(loss.item(), batch_size)
 
-                        for k, v in extra_losses.items():
-                            if k not in extra_loss_mts:
-                                extra_loss_mts[k] = AverageMeter(k, self.device, ":.2e")
-                            extra_loss_mts[k].update(v.item(), batch_size)
+                    for k, v in extra_losses.items():
+                        if k not in extra_loss_mts:
+                            extra_loss_mts[k] = AverageMeter(k, self.device, ":.2e")
+                        extra_loss_mts[k].update(v.item(), batch_size)
 
             # measure elapsed time
             batch_time.update(time.time() - end)
